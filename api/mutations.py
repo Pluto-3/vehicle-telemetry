@@ -55,7 +55,7 @@ class Mutation:
                         """
                         INSERT INTO telemetry_telemetry
                         (vehicle_id, source_id, timestamp, speed, fuel_level, latitude, longitude)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s,)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
                         ON CONFLICT (vehicle_id, source_id) DO NOTHING
                         """,
                         [str(inp.vehicle_id), inp.source_id, inp.timestamp, inp.speed, inp.fuel_level, inp.latitude, inp.longitude],
