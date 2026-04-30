@@ -23,7 +23,7 @@ def send_batch(readings: list[dict], retries: int = 0) -> dict | None:
         resp = requests.post(
             GRAPHQL_URL,
             json={"query": BATCH_MUTATION, "variables": {"inputs": readings}},
-            timeout=10,
+            timeout=10, headers={"X-API-Key": "tlm_7ba8f893ea134d89627c165651cb7b60b694c7ee05848443689081f8a17ec8a8"},
         )
         resp.raise_for_status()
         data = resp.json()

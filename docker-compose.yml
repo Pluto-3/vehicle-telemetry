@@ -3,15 +3,15 @@ services:
     image: postgres:18.3
     container_name: telemetry_postgres
     ports:
-      - "5435:5432"
+      - "5432:5432"
     environment:
-      POSTGRES_DB: telemetry
-      POSTGRES_USER: telemetry
-      POSTGRES_PASSWORD: telemetry
+      POSTGRES_DB: ${DB_NAME:-telemetry}
+      POSTGRES_USER: ${DB_USER:-telemetry}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-telemetry}
     volumes:
       - telemetry_pgdata:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U telemetry"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-telemetry}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -21,6 +21,32 @@ services:
     container_name: telemetry_redis
     ports:
       - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  web:
+    build: .
+    container_name: telemetry_web
+    ports:
+      - "8001:8001"
+    env_file:
+      - .env
+    environment:
+      DB_HOST: db
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             daphne -b 0.0.0.0 -p 8001 config.asgi:application"
 
 volumes:
   telemetry_pgdata:

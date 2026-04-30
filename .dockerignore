@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+.git/
+staticfiles/
+*.sqlite3
+.DS_Store
+simulator/
