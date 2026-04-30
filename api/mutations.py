@@ -22,7 +22,6 @@ class Mutation:
     @strawberry.mutation
     def create_vehicle(self, plate_number: str, model: str) -> VehicleType:
         from vehicles.models import Vehicle
-        import uuid
         v = Vehicle.objects.create(plate_number=plate_number, model=model)
         return VehicleType(id=v.id, plate_number=v.plate_number, model=v.model, created_at=v.created_at)
 
@@ -36,7 +35,6 @@ class Mutation:
     def assign_driver(self, input: AssignmentInput) -> AssignmentType:
         from drivers.models import VehicleDriverAssignment
         from django.utils import timezone
-        # Close any open assignment for this vehicle
         VehicleDriverAssignment.objects.filter(
             vehicle_id=input.vehicle_id, end_time__isnull=True
         ).update(end_time=timezone.now())
@@ -53,6 +51,12 @@ class Mutation:
     @strawberry.mutation
     def ingest_telemetry(self, input: TelemetryInput) -> IngestResult:
         from django.db import connection
+        from ingestion.rate_limit import check_rate_limit
+
+        allowed, retry_after = check_rate_limit(str(input.vehicle_id), limit=60)
+        if not allowed:
+            return IngestResult(success=False, created=0, message=f"Rate limit exceeded. Retry after {retry_after}s")
+
         with connection.cursor() as cur:
             cur.execute(
                 """
@@ -75,6 +79,18 @@ class Mutation:
     @strawberry.mutation
     def ingest_batch_telemetry(self, inputs: List[TelemetryInput]) -> IngestResult:
         from django.db import connection
+        from ingestion.rate_limit import check_rate_limit
+
+        # Rate limit per unique vehicle in batch
+        seen = set()
+        for inp in inputs:
+            vid = str(inp.vehicle_id)
+            if vid not in seen:
+                allowed, retry_after = check_rate_limit(vid, limit=20, window=60)
+                if not allowed:
+                    return IngestResult(success=False, created=0, message=f"Rate limit exceeded for {vid}. Retry after {retry_after}s")
+                seen.add(vid)
+
         total_created = 0
         inserted_inputs = []
         with transaction.atomic():
@@ -93,8 +109,10 @@ class Mutation:
                     if cur.rowcount:
                         total_created += 1
                         inserted_inputs.append(inp)
+
         for inp in inserted_inputs:
             _run_pipeline(str(inp.vehicle_id), inp)
+
         return IngestResult(
             success=True, created=total_created,
             message=f"{total_created}/{len(inputs)} inserted, {len(inputs)-total_created} duplicates skipped",
