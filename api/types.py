@@ -3,18 +3,21 @@ from datetime import datetime
 from typing import Optional
 import uuid
 
+
 @strawberry.type
 class VehicleType:
-    id:uuid.UUID
+    id: uuid.UUID
     plate_number: str
     model: str
     created_at: datetime
+
 
 @strawberry.type
 class DriverType:
     id: uuid.UUID
     name: str
     license_number: str
+
 
 @strawberry.type
 class TelemetryType:
@@ -26,6 +29,7 @@ class TelemetryType:
     latitude: float
     longitude: float
     source_id: str
+
 
 @strawberry.type
 class DrivingEventType:
@@ -45,11 +49,22 @@ class DriverScoreType:
     km_driven: float
     calculated_at: datetime
 
+
 @strawberry.type
 class IngestResult:
     success: bool
-    created: int    # rows inserted (0 = duplicate, skipped)
+    created: int
     message: str
+
+
+@strawberry.type
+class AssignmentType:
+    id: int
+    vehicle_id: uuid.UUID
+    driver_id: uuid.UUID
+    start_time: datetime
+    end_time: Optional[datetime]
+
 
 @strawberry.input
 class TelemetryInput:
@@ -60,3 +75,15 @@ class TelemetryInput:
     fuel_level: float
     latitude: float
     longitude: float
+
+
+@strawberry.input
+class DriverInput:
+    name: str
+    license_number: str
+
+
+@strawberry.input
+class AssignmentInput:
+    vehicle_id: uuid.UUID
+    driver_id: uuid.UUID

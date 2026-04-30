@@ -15,4 +15,4 @@ class DriverScore(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.driver_id} score={self.score:.1f} @ {self.calculated_at}"
+        return f"{self.driver_id} score={self.score:.1f} @ {self.calculated_at}"# patch - window_days already defined, checking migration

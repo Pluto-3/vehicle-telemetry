@@ -52,7 +52,7 @@ def compute_score(driver_id) -> dict:
         readings = (
             Telemetry.objects
             .filter(vehicle_id=a.vehicle_id, timestamp__gte=a.start_time, timestamp__lte=end)
-            .order_by("timestamp")
+            .order_by("timestamp").values_list("speed", "timestamp")
         )
         prev_ts = None
         for speed, ts in readings:
@@ -76,6 +76,6 @@ def compute_and_save(driver_id):
         driver_id=driver_id,
         score=result["score"],
         km_driven=result["km_driven"],
-        window_days=WINDOW_DAYS,
+        window_Days=WINDOW_DAYS,
     )
     return result
